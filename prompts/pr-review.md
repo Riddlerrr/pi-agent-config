@@ -1,16 +1,29 @@
 ---
-description: Code review a piece of code for bugs, security, performance, and refactoring
-argument-hint: "[what to review]"
+description: Review a GitHub PR using gh CLI for bugs, security, performance, and refactoring
+argument-hint: "[PR-number-or-URL]"
 discussion: true
 ---
+Review the GitHub PR $1. If no argument is provided, use the current branch's PR.
 
-The user wants to review: `$@`
+First, gather the PR information using the `gh` CLI. Run these commands and read their output:
 
-Interpret this description to determine the exact scope of code to review. If it is empty or ambiguous, ask the user for clarification before proceeding.
+```bash
+# PR details (title, body, author, state, base/head branches)
+gh pr view $1 --json number,title,body,author,state,baseRefName,headRefName,url,createdAt,updatedAt,comments,reviewRequests
 
-Write your review to REVIEW.md file. If the file already exists and contains reviewnot related to the current: rewrite it.
+# PR diff
+gh pr diff $1
 
-Use available bash tools to inspect the repository state and resolve the user's intent. Gather the relevant code, then provide a structured review with the following sections:
+# PR review comments (if any)
+gh api repos/{owner}/{repo}/pulls/{number}/comments --jq '.[] | {user: .user.login, body: .body, path: .path, line: .line, commit_id: .commit_id}'
+```
+
+If the PR number/URL is not provided, determine it from the current branch:
+```bash
+gh pr view --json number,url
+```
+
+Provide a structured review with the following sections:
 
 ## Summary
 Brief overview of what the PR does, its scope, and estimated risk level (Low/Medium/High).
