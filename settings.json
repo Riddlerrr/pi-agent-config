@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "0.87.1",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "xhigh",
@@ -16,5 +16,9 @@
   ],
   "subagents": {
     "disableBuiltins": true
+  },
+  "modelThinkingLevels": {
+    "openai-codex/gpt-5.6-sol": "xhigh",
+    "openai-codex/gpt-6-astra": "medium"
   }
 }
