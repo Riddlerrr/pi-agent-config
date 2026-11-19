@@ -1,3 +1,7 @@
+import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { parseEnv } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const provider = "openai-codex";
@@ -40,10 +44,14 @@ async function choose(text: string, signal?: AbortSignal) {
   if (prefix === "fast" || prefix === "deep") return { ...lanes[prefix], why: prefix + ": override" };
 
   signal?.throwIfAborted();
-  const token = process.env.HINDSIGHT_API_DECISION_MODEL_API_KEY;
-  if (text && token) {
+  let token = process.env.HINDSIGHT_API_DECISION_MODEL_API_KEY?.trim();
+  if (text) {
     try {
-      const lane = await classify(text, token, signal);
+      if (!token) {
+        const file = await readFile(join(homedir(), ".pi", "agent", "hindsight.env"), "utf8");
+        token = parseEnv(file).HINDSIGHT_API_DECISION_MODEL_API_KEY?.trim();
+      }
+      const lane = token && await classify(text, token, signal);
       if (lane === "fast" || lane === "normal" || lane === "deep") {
         return { ...lanes[lane], why: "hs-decide-1-flash: " + lane };
       }
