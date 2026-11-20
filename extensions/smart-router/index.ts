@@ -1,10 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseEnv } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const provider = "openai-codex";
+const criteriaPath = join(dirname(fileURLToPath(import.meta.url)), "hindsight-criteria.md");
 const lanes = {
   fast: { id: "gpt-6-luna", thinkingLevel: "low" },
   normal: { id: "gpt-6.2-sol", thinkingLevel: "xhigh" },
@@ -15,14 +17,17 @@ const lanes = {
 const rules: [RegExp, keyof typeof lanes, string][] = [
   [/\b(architecture|trade-?offs?|root cause|deadlock|diagnose)\b/i, "deep", "design or diagnosis"],
   [/^(summari[sz]e|translate|rephrase|define)\b/i, "fast", "text task"],
+  [/^(?:please |let's |can (?:you|we) )?(?:plan|planning)\b|\b(?:implementation plan|plan (?:for|how to|a fix))\b/i, "deep", "implementation planning"],
+  [/\b(?:analy[sz](?:e|ing)|analysis of|assess|scope)\b[^.!?\n]*\b(?:features?|requirements?|implement(?:ation)?)\b/i, "deep", "pre-implementation analysis"],
 ];
 
 async function classify(text: string, token: string, signal?: AbortSignal) {
+  const criteria = parseEnv(await readFile(criteriaPath, "utf8"));
   const body = { state: text.slice(0, 4000), questions: { lane: {
-    type: "choice", instructions: "Which lane fits the requested work?", criteria: {
-      fast: "Simple lookup, translation, summary, or rewrite.",
-      normal: "Routine implementation, fixes, reviews, or explanations.",
-      deep: "Hard diagnosis, architectural trade-offs, or cross-cutting design.",
+    type: "choice", instructions: criteria.instructions, criteria: {
+      fast: criteria.fast,
+      normal: criteria.normal,
+      deep: criteria.deep,
     },
   } } };
   const timeout = AbortSignal.timeout(2500);

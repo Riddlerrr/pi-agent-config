@@ -21,6 +21,7 @@ const remote = mock.method(globalThis, "fetch", async (url, opts) => {
   assert.equal(opts.redirect, "error");
   assert.equal(opts.headers.Authorization, "Bearer " + expectedToken);
   assert.ok(JSON.parse(opts.body).state.length <= 4000);
+  assert.equal(JSON.parse(opts.body).questions.lane.criteria.deep.includes("Planning a feature"), true);
   if (reply === null) throw Error("offline");
   return new Response(reply, { status: reply === "unauthorized" ? 401 : 200 });
 });
@@ -45,6 +46,13 @@ for (reply of [null, "unauthorized", "invalid JSON", '{"answers":{"lane":{"choic
   await preview("Add pagination", ctx);
   assert.match(notice, /^local fallback: default → gpt-6.2-sol · xhigh$/);
 }
+reply = null;
+for (const prompt of ["Plan a feature for bulk export", "Plan a bugfix for empty exports", "Analyze bulk export requirements before we implement it"]) {
+  await preview(prompt, ctx);
+  assert.match(notice, /^local fallback: .* → gpt-6.2-astra · high$/);
+}
+await preview("Fix the empty export bug", ctx);
+assert.match(notice, /gpt-6.2-sol · xhigh$/);
 expectedToken = "file-token";
 reply = '{"answers":{"lane":{"choice":"deep"}}}';
 process.env.HINDSIGHT_API_DECISION_MODEL_API_KEY = "";
